@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentic-ecommerce-api"
+version = "0.1.0"
+description = "REST API for the agentic-ecommerce monorepo."
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic>=2.7",
+    "pyjwt>=2.8",
+    "bcrypt>=4.1",
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.29",
+    "alembic>=1.13",
+    "agentic-ecommerce-shared",
+]
+
+[project.scripts]
+agentic-ecommerce-api = "agentic_ecommerce_api.main:run"
+agentic-ecommerce-create-user = "agentic_ecommerce_api.cli.create_user:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentic_ecommerce_api"]
