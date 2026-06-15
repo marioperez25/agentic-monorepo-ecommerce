@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test + lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          # Cache the uv-managed Python install + .venv across runs.
+          enable-cache: true
+          # Pin the uv version so CI doesn't drift unannounced.
+          version: "0.11.16"
+
+      - name: Sync workspace
+        run: uv sync --frozen
+
+      - name: Ruff (lint)
+        run: uv run ruff check .
+
+      - name: Ruff (format check)
+        run: uv run ruff format --check .
+
+      - name: Pytest
+        env:
+          # Tests use SQLite + a dummy JWT key — no live Postgres needed.
+          DATABASE_URL: sqlite+aiosqlite:///:memory:
+          JWT_SECRET_KEY: ci-secret-key-for-tests-only-not-real-and-long-enough-32-bytes
+        run: uv run pytest -q
+
+  audit:
+    name: Dependency audit (pip-audit)
+    runs-on: ubuntu-latest
+    # Don't block PRs on advisory churn — surface, don't fail.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          version: "0.11.16"
+
+      - name: Sync
+        run: uv sync --frozen
+
+      - name: Run pip-audit
+        run: uv run --with pip-audit pip-audit --strict

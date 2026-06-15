@@ -3,10 +3,11 @@ from __future__ import annotations
 from typing import Annotated
 
 from agentic_ecommerce_shared import get_settings
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from agentic_ecommerce_api._rate_limit import limiter
 from agentic_ecommerce_api.auth import (
     CurrentUser,
     LoginRequest,
@@ -39,12 +40,16 @@ _INVALID_CREDENTIALS_RESPONSE = {
     description=(
         "POST a username and password. On success, returns a signed bearer "
         "token that is valid for `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` "
-        "(default 60min)."
+        "(default 60min). Rate-limited per IP (see `RATE_LIMIT_LOGIN`)."
     ),
     response_description="A signed JWT and its expiry.",
-    responses={401: _INVALID_CREDENTIALS_RESPONSE},
+    responses={
+        401: _INVALID_CREDENTIALS_RESPONSE,
+        429: {"description": "Too many requests, slow down."},
+    },
 )
-async def login(payload: LoginRequest, session: SessionDep) -> TokenResponse:
+@limiter.limit(lambda: get_settings().rate_limit_login)
+async def login(request: Request, payload: LoginRequest, session: SessionDep) -> TokenResponse:
     user = (
         await session.execute(select(User).where(User.username == payload.username))
     ).scalar_one_or_none()

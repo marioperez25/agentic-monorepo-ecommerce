@@ -8,12 +8,16 @@ description: |
   1. data-modeler   — designs the SQLAlchemy model + Alembic migration
   2. api-designer   — designs the Pydantic schemas + FastAPI router
   3. code-generator — writes all files, runs `pytest` + `ruff`, reports
+  4. security-scan  — audits the new code against the repo's security
+                      standards; produces a findings report
 
-  (A fourth `fe-code-generator` specialist will plug in here when
+  (A future `fe-code-generator` specialist will plug in here when
   `apps/web/` exists.)
 
   Each phase pauses for explicit user confirmation BEFORE the next runs.
-  No files are written until phase 3.
+  No files are written until phase 3. Phase 4 (security) runs after
+  phase 3 succeeds and can demand a re-run of phase 3 if it finds
+  critical issues.
 
   Trigger phrases: "scaffold a new resource", "create a new entity",
   "add CRUD for <thing>", "generate endpoints for <thing>",
@@ -48,6 +52,7 @@ addresses, carts) following the repo's standard pattern.
 | 1 | data-modeler | `prompts/data-modeler.md` |
 | 2 | api-designer | `prompts/api-designer.md` |
 | 3 | code-generator | `prompts/code-generator.md` |
+| 4 | security-scan | `prompts/security-scan.md` |
 
 When you spawn a specialist:
 
@@ -95,8 +100,38 @@ When you spawn a specialist:
 
 **3a.** Spawn the **code-generator** using `prompts/code-generator.md`.
 
-**3b.** Print the sub-agent's report plus a one-line summary
-(`"X endpoints, Y tests, all green"` or the failure detail). Done.
+**3b.** Print the sub-agent's report. If the repo isn't green (tests
+failing, ruff errors), stop here and surface the failure to the user
+before proceeding to phase 4.
+
+### Phase 4 — Security scan
+
+This phase audits the code that phase 3 just landed against the repo's
+security standards. It runs automatically — no user-input gathering.
+
+**4a.** Spawn the **security-scan** using `prompts/security-scan.md`.
+Pass it:
+- The resource name.
+- The agreed permission matrix from phase 2.
+- The list of files written/modified, copied verbatim from the
+  code-generator's report.
+
+**4b.** Inspect the security-scan verdict:
+
+- **GREEN** → relay the findings (if any "Notes" or "Project-wide gaps"
+  are worth mentioning) and declare the resource done.
+- **YELLOW** → relay the report to the user, list the important findings,
+  and ask whether to fix them now (re-spawn code-generator with the
+  findings as input) or accept them and move on.
+- **RED** → do **not** declare done. Re-spawn the **code-generator** with
+  the security-scan's critical findings as additional input, then loop
+  back to phase 4 to re-audit. Cap this loop at 2 retries; if RED
+  persists, hand the report to the user.
+
+**4c.** Final summary to the user includes:
+- One-line code-generator result (`X endpoints, Y tests, all green`).
+- One-line security verdict (`security: GREEN` / `YELLOW (3 important)` /
+  `RED (1 critical) — see report above`).
 
 ## Adding a new specialist later
 

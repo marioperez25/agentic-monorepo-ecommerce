@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from agentic_ecommerce_api import _exception_handler, _rate_limit
 from agentic_ecommerce_api.routers import auth, health, inventory, products, storefront, stores
 
 TAGS_METADATA = [
@@ -73,6 +74,9 @@ def create_app() -> FastAPI:
             "tryItOutEnabled": True,
         },
     )
+    _exception_handler.install(app)
+    _rate_limit.install(app)
+
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(products.router)

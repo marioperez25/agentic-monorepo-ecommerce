@@ -45,6 +45,18 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256")
     jwt_access_token_expire_minutes: int = Field(default=60)
 
+    rate_limit_enabled: bool = Field(
+        default=True,
+        description=(
+            "Master switch for the slowapi limiter. Disabled in tests so the "
+            "suite doesn't accidentally trip per-IP limits."
+        ),
+    )
+    rate_limit_login: str = Field(
+        default="5/minute",
+        description="slowapi limit expression applied to POST /auth/login.",
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

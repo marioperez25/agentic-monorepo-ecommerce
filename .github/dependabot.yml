@@ -1,0 +1,22 @@
+version: 2
+
+updates:
+  # Python deps in the uv workspace (root pyproject.toml + member pyprojects).
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels: ["dependencies", "python"]
+    groups:
+      # Group routine bumps into a single PR; security advisories still get
+      # their own PRs because Dependabot opens them outside this group.
+      python-minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # The GitHub Actions we use in .github/workflows/.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    labels: ["dependencies", "ci"]

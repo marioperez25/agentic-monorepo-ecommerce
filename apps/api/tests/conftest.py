@@ -15,6 +15,9 @@ os.environ.setdefault(
     "JWT_SECRET_KEY",
     "test-secret-key-for-tests-only-needs-to-be-at-least-32-bytes",
 )
+# Disable the slowapi limiter for the suite — tests run many login calls
+# from the same loopback IP and would otherwise trip per-IP limits.
+os.environ.setdefault("RATE_LIMIT_ENABLED", "false")
 
 from collections.abc import AsyncIterator  # noqa: E402
 
